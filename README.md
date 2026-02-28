@@ -1,10 +1,12 @@
 # Belajar Kubernetes
 
+## 1️⃣ Apa itu Kubernetes
+
 **Kubernetes** (sering disingkat **K8s**) adalah platform open-source yang digunakan untuk orkestrasi kontainer. 
 
 Bayangkan aplikasi Anda adalah kumpulan kotak-kotak (kontainer) yang berisi kode. Jika Anda hanya punya satu kotak, mengaturnya mudah. Namun, jika Anda punya ribuan kotak di berbagai server, Anda butuh "kapten kapal" untuk mengaturnya—itulah Kubernetes (kata Yunani untuk "nakhoda" atau "kapten"). 
 
-## Apa Fungsinya?
+### Apa Fungsinya?
 Kubernetes bekerja seperti konduktor orkestra yang memastikan setiap instrumen (kontainer) bermain pada waktu yang tepat dan dengan volume yang pas. Fungsi utamanya meliputi: 
 
 * **Otomatisasi Deployment**: Memasang dan memperbarui aplikasi secara otomatis tanpa menghentikan layanan (zero downtime).
@@ -12,8 +14,158 @@ Kubernetes bekerja seperti konduktor orkestra yang memastikan setiap instrumen (
 * **Auto-Scaling**: Menambah jumlah kontainer saat pengunjung aplikasi melonjak dan menguranginya saat sepi agar hemat biaya.
 * **Load Balancing**: Membagi trafik masuk secara merata ke berbagai kontainer supaya tidak ada server yang keberatan beban. 
 
-## Mengapa Kubernetes Populer?
+### Mengapa Kubernetes Populer?
 
 Platform ini awalnya dikembangkan oleh Google dan kini dikelola oleh Cloud Native Computing Foundation (CNCF). Kubernetes menjadi standar industri karena kemampuannya menjaga aplikasi tetap stabil meski dijalankan di infrastruktur yang sangat besar, baik di cloud (seperti AWS, Google Cloud, Azure) maupun di server lokal. 
 
 Untuk mulai mencoba, Anda bisa mengikuti Panduan Dasar di Situs Resmi Kubernetes yang tersedia dalam Bahasa Indonesia. 
+
+## 2️⃣ Arsitektur Kubernetes
+
+Arsitektur Kubernetes (K8s) dirancang sebagai sistem terdistribusi yang terdiri dari dua bagian utama: **Control Plane** (Master Node) dan **Worker Node**. Keduanya bekerja sama untuk memastikan aplikasi berjalan sesuai konfigurasi yang diinginkan. 
+
+![Kubernetes](https://kubernetes.io/images/docs/kubernetes-cluster-architecture.svg)
+
+## 1. Control Plane (Otak Klaster)
+Control Plane bertanggung jawab untuk membuat keputusan global tentang klaster (seperti penjadwalan) serta mendeteksi dan menanggapi kejadian di klaster. Komponen utamanya meliputi: 
+
+* __kube-apiserver__: Pintu masuk utama untuk semua perintah. Semua komponen berkomunikasi melalui API ini.
+* __etcd__: Penyimpanan data _key-value_ yang konsisten dan memiliki ketersediaan tinggi, berfungsi sebagai basis data utama untuk semua data klaster.
+* __kube-scheduler__: Bertugas memilih node mana yang paling cocok untuk menjalankan Pod baru berdasarkan ketersediaan sumber daya.
+* __kube-controller-manager__: Menjalankan proses kontroler yang menjaga agar status klaster tetap sesuai dengan yang diinginkan (misalnya, mengganti Pod yang mati). 
+
+### 2. Worker Node (Pekerja Klaster)
+
+Node ini adalah mesin (VM atau fisik) tempat aplikasi Anda benar-benar berjalan. Komponen di dalamnya meliputi: 
+
+* __kubelet__: Agen yang berjalan di setiap node untuk memastikan kontainer di dalam Pod berjalan dengan sehat.
+* __kube-proxy__: Komponen jaringan yang mengatur aturan trafik sehingga komunikasi antar Pod atau dari luar klaster bisa terjadi.
+* __Container Runtime__: Perangkat lunak yang menjalankan kontainer (seperti Docker, containerd, atau CRI-O).
+* __Pods__: Unit terkecil di Kubernetes yang berisi satu atau lebih kontainer. 
+
+### Cara Kerja Sederhana
+
+* __User__ mengirim perintah melalui `kubectl` ke __API Server__.
+* __API Server__ menyimpan status baru ke __etcd__.
+* __Scheduler__ melihat ada Pod baru dan menentukan __Worker Node__ yang kosong.
+* __Kubelet__ di node terpilih menerima instruksi dan memerintahkan __Container Runtime__ untuk menyalakan kontainer.
+
+## 3️⃣ Cara Instal Kubernetes
+
+Cara menginstal Kubernetes sangat bergantung pada kebutuhan Anda, apakah untuk belajar (lokal) atau untuk produksi (server). Berikut adalah tiga metode yang paling umum digunakan: 
+
+### 1. Untuk Pemula & Belajar (Lokal)
+
+Jika Anda ingin mencoba Kubernetes di laptop sendiri, gunakan tool yang ringan dan cepat.
+
+* __Minikube__: Tool paling populer untuk membuat klaster satu node di mesin lokal.
+    1. Unduh Minikube sesuai OS Anda (Windows/macOS/Linux).
+    2. Pastikan Anda memiliki driver seperti Docker, VirtualBox, atau Hyper-V.
+    3. Jalankan perintah: `minikube start`.
+* __Docker Desktop__: Jika Anda sudah menggunakan Docker di Windows atau Mac, Anda cukup mengaktifkan fitur Kubernetes di menu __Settings > Kubernetes > Enable Kubernetes__.
+* __MicroK8s__: Sangat ringan dan cocok untuk Ubuntu/Linux, diinstal cukup dengan perintah `snap install microk8s --classic`. 
+
+### 2. Untuk Lingkungan Produksi (Manual/Bare Metal)
+
+Jika Anda ingin membangun klaster di server asli atau VPS, gunakan alat standar komunitas:
+* __Kubeadm__: Tool resmi untuk membangun klaster yang sesuai dengan standar industri.
+    * **Persiapan**: Siapkan minimal 2 server (Master & Worker) dengan OS Linux (seperti Ubuntu 22.04), minimal 2 CPU, dan 2 GB RAM.
+    * **Langkah Utama**:
+        * Matikan Swap di semua node (`sudo swapoff -a`).
+        * Instal __Container Runtime__ (seperti `containerd` atau Docker).
+        * Instal alat utama: `kubeadm`, `kubelet`, dan `kubectl`.
+        * Inisialisasi Master Node: `kubeadm init`.
+        * Hubungkan Worker Node dengan perintah `kubeadm join` yang dihasilkan oleh Master. 
+
+### 3. Menggunakan Layanan Cloud (Managed Kubernetes)
+
+Cara termudah untuk skala besar tanpa pusing mengatur server Master adalah menggunakan layanan dari penyedia cloud: 
+
+* **Google Cloud (GKE)**: Instal Google Cloud SDK dan jalankan `gcloud container clusters create [NAMA_KLASTER]`.
+* **AWS (EKS)**: Menggunakan `eksctl` untuk membuat klaster secara otomatis.
+* **Azure (AKS)**: Menggunakan Azure CLI atau portal untuk deployment cepat.
+
+> Pada materi ini menggunakan lokal komputer dengan menggunakan __minikube__.
+
+Setelah instalasi selesai, Anda wajib menginstal [kubectl](https://kubernetes.io/id/docs/tasks/tools/install-kubectl/) (Kubernetes CLI) untuk berinteraksi dengan klaster Anda. 
+
+Cek version `kubectl version`:
+
+```bash
+ucup@Timposu:~$ kubectl version
+
+Client Version: v1.35.2
+Kustomize Version: v5.7.1
+Server Version: v1.35.1
+```
+
+## 4️⃣ Node
+
+Dalam ekosistem Kubernetes, Node adalah sebuah mesin (baik itu server fisik maupun mesin virtual/VM) tempat aplikasi Anda benar-benar dijalankan.
+Jika Kubernetes adalah sebuah kapal besar, maka Node adalah ruang mesin atau dek tempat kargo (kontainer) diletakkan. Dokumentasi Resmi Kubernetes menjelaskan bahwa Node dikelola oleh Control Plane untuk memastikan aplikasi tetap berjalan.
+
+Secara umum seperti yang sudah dibahas sebelumnya, ada dua jenis **Node Master Node (Control Plane)** dan **Worker Node**.
+
+### Perintah Dasar Node
+
+1. Melihat Daftar Node
+
+Perintah ini digunakan untuk mengecek apakah Node Anda sudah aktif dan siap (Ready).
+
+```bash
+kubectl get nodes
+```
+
+> Tips: Tambahkan `-o wide` untuk melihat informasi lebih detail seperti alamat IP dan versi kernel: `kubectl get nodes -o wide`.
+
+Karena menggunakan Minikube, Anda bisa melihat Node tunggal Anda dengan mengetik `kubectl get nodes`.
+
+2. Melihat Detail Informasi Node
+
+Jika terjadi error pada Node, gunakan perintah ini untuk melihat log kejadian, kapasitas CPU/RAM, dan status kesehatannya.
+
+```bash
+kubectl describe node <nama-node>
+```
+
+(Contoh: `kubectl describe node minikube`)
+
+3. Melihat Penggunaan Sumber Daya (Resource)
+
+Untuk melihat berapa banyak CPU dan Memori yang sedang digunakan oleh Node secara real-time:
+
+```bash
+kubectl top node
+```
+
+Catatan: Perintah ini memerlukan Metrics Server aktif. Di Minikube, aktifkan dengan: `minikube addons enable metrics-server`.
+
+4. Mengelola Status Node (Maintenance)
+
+Dalam kondisi tertentu, Anda mungkin perlu menghentikan sementara Node agar tidak menerima beban kerja baru:
+
+* Cordon (Tandai Tidak Bisa Digunakan): Menghindari Pod baru masuk ke Node ini.
+
+```bash
+kubectl cordon <nama-node>
+```
+
+* Uncordon (Aktifkan Kembali): Mengizinkan kembali Pod baru masuk.
+
+```bash
+kubectl uncordon <nama-node>
+```
+
+* Drain (Kosongkan Node): Memindahkan semua Pod yang berjalan di Node tersebut ke Node lain (biasanya dilakukan sebelum mematikan server).
+
+```bash
+kubectl drain <nama-node> --ignore-daemonsets
+```
+
+5. Memberi Label pada Node
+
+Label berguna untuk mengelompokkan Node (misalnya: membedakan Node dengan SSD atau GPU).
+
+```bash
+kubectl label nodes <nama-node> disktype=ssd
+```
