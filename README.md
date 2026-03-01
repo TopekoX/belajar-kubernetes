@@ -106,9 +106,17 @@ Jika Kubernetes adalah sebuah kapal besar, maka Node adalah ruang mesin atau dek
 
 Secara umum seperti yang sudah dibahas sebelumnya, ada dua jenis **Node Master Node (Control Plane)** dan **Worker Node**.
 
+### Komponen di Dalam Sebuah Node
+Setiap Worker Node memiliki tiga komponen utama agar bisa berkomunikasi dengan "otak" pusat:
+* __kubelet__: Agen kecil yang memastikan kontainer berjalan sesuai perintah Master.
+* __kube-proxy__: Pengatur lalu lintas jaringan agar aplikasi bisa diakses.
+* __Container Runtime__: Mesin yang menjalankan kontainer (biasanya Docker atau containerd).
+
+> Karena kita menggunakan Minikube, laptop kita bertindak sebagai satu-satunya node yang merangkap fungsi Master sekaligus Worker (klaster satu-node).
+
 ### Perintah Dasar Node
 
-1. Melihat Daftar Node
+#### Melihat Daftar Node
 
 Perintah ini digunakan untuk mengecek apakah Node Anda sudah aktif dan siap (Ready).
 
@@ -120,7 +128,7 @@ kubectl get nodes
 
 Karena menggunakan Minikube, Anda bisa melihat Node tunggal Anda dengan mengetik `kubectl get nodes`.
 
-2. Melihat Detail Informasi Node
+#### Melihat Detail Informasi Node
 
 Jika terjadi error pada Node, gunakan perintah ini untuk melihat log kejadian, kapasitas CPU/RAM, dan status kesehatannya.
 
@@ -130,7 +138,7 @@ kubectl describe node <nama-node>
 
 (Contoh: `kubectl describe node minikube`)
 
-3. Melihat Penggunaan Sumber Daya (Resource)
+#### Melihat Penggunaan Sumber Daya (Resource)
 
 Untuk melihat berapa banyak CPU dan Memori yang sedang digunakan oleh Node secara real-time:
 
@@ -140,7 +148,7 @@ kubectl top node
 
 Catatan: Perintah ini memerlukan Metrics Server aktif. Di Minikube, aktifkan dengan: `minikube addons enable metrics-server`.
 
-4. Mengelola Status Node (Maintenance)
+#### Mengelola Status Node (Maintenance)
 
 Dalam kondisi tertentu, Anda mungkin perlu menghentikan sementara Node agar tidak menerima beban kerja baru:
 
@@ -162,10 +170,163 @@ kubectl uncordon <nama-node>
 kubectl drain <nama-node> --ignore-daemonsets
 ```
 
-5. Memberi Label pada Node
+#### 5. Memberi Label pada Node
 
 Label berguna untuk mengelompokkan Node (misalnya: membedakan Node dengan SSD atau GPU).
 
 ```bash
 kubectl label nodes <nama-node> disktype=ssd
 ```
+
+## 5️⃣ Pod
+
+### Apa itu Pod?
+
+Pod adalah unit terkecil yang dapat dibuat dan dikelola di Kubernetes.
+
+Jika di Docker Anda terbiasa mengelola Kontainer secara langsung, di Kubernetes Anda tidak menjalankan kontainer sendirian. Kontainer tersebut selalu dibungkus di dalam sebuah Pod.
+
+Analogi: Jika kontainer adalah seekor ikan, maka Pod adalah akuariumnya. Satu akuarium (Pod) bisa berisi satu ikan atau beberapa ikan yang saling bekerja sama.
+
+### Karakteristik Utama Pod
+
+* **Satu IP per Pod**: Setiap Pod mendapatkan alamat IP unik. Semua kontainer di dalam satu Pod berbagi alamat IP yang sama.
+* **Berbagi Penyimpanan (Volume)**: Kontainer dalam satu Pod dapat berbagi file melalui volume yang sama.
+* ***Ephemeral (Sementara)***: Pod bersifat tidak kekal. Jika sebuah Pod mati, Kubernetes tidak akan "menghidupkannya lagi", melainkan membuat Pod baru sebagai penggantinya.
+* **localhost**: Kontainer di dalam satu Pod yang sama bisa berkomunikasi satu sama lain menggunakan `localhost`.
+
+### Kapan Menggunakan Multi-Kontainer dalam Satu Pod?
+
+Sebagian besar Pod hanya berisi satu kontainer (pola paling umum). Namun, Anda bisa menggunakan lebih dari satu kontainer jika ada hubungan erat, misalnya:
+
+* Main Container: Menjalankan aplikasi web.
+* Sidecar Container: Menjalankan tugas pembantu seperti mengambil log atau memperbarui sertifikat SSL secara otomatis.
+
+### Cara Membuat Pod
+
+Ada dua cara untuk membuat Pod:
+
+#### A. Cara Imperatif (Cepat untuk Tes)
+
+Gunakan perintah `kubectl run` untuk membuat Pod secara instan:
+
+```bash
+kubectl run pod-nginx --image=nginx
+```
+
+#### B. Cara Deklaratif (Standar Industri)
+
+Menggunakan file konfigurasi __YAML__. Buat file bernama `pod.yaml`:
+
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: nginx-pod
+  labels:
+    app: web
+spec:
+  containers:
+  - name: nginx-container
+    image: nginx:latest
+    ports:
+    - containerPort: 80
+```
+
+Lalu jalankan perintah:
+
+```bash
+kubectl apply -f pod.yaml
+```
+
+atau
+
+```bash
+kubectl create -f pod.yaml
+```
+
+Perbedaan utamanya terletak pada metode pengelolaan status objek di Kubernetes. Secara singkat: `create` bersifat imperatif (sekali jalan / membuat objek baru dari nol), sedangkan `apply` bersifat deklaratif (berbasis perubahan status / membuat objek baru atau memperbarui yang sudah ada).
+
+### Perintah Dasar Mengelola Pod
+
+Berikut adalah perintah yang wajib Anda tau:
+
+* Melihat daftar Pod:
+
+`kubectl get pods`
+
+* Melihat detail Pod (untuk debugging):
+
+`kubectl describe pod <nama-pod>`
+
+* Melihat log dari aplikasi di dalam Pod:
+
+`kubectl logs <nama-pod>`
+
+* Masuk ke terminal di dalam Pod:
+
+`kubectl exec -it <nama-pod> -- bin/bash`
+
+* Menghapus Pod:
+
+`kubectl delete pod <nama-pod>`
+
+#### Latihan membuat Pod Nginx
+
+* Buat file `pod.yaml`:
+
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: nginx-pod
+  labels:
+    app: web
+spec:
+  containers:
+  - name: nginx-container
+    image: nginx:latest
+    ports:
+    - containerPort: 80
+```
+
+* Deploy:
+
+```bash
+kubectl apply -f pod.yaml
+
+# Cek pod
+kubectl get pods
+```
+
+* Melihat Pod:
+
+```bash
+# Melihat daftar pod
+kubectl get pods
+
+# Melihat daftar pod lebih detail
+kubectl get pods -o wide
+
+# Melihat pod sangat detail
+kubectl describe pod nginx-pod
+```
+
+* Akses Nginx dari Browser (Khusus Minikube):
+
+Karena Pod berjalan di dalam klaster isolasi, Anda perlu melakukan _port-forwarding_ agar bisa membukanya di browser Windows:
+
+```bash
+kubectl port-forward nginx-pod 8080:80
+```
+
+Sekarang, buka browser di Windows dan akses `http://localhost:8080`. Anda akan melihat halaman selamat datang Nginx.
+
+* Melihat Log Aplikasi:
+
+Jika terjadi kendala, cek log dengan:
+
+```bash
+kubectl logs nginx-pod
+```
+
