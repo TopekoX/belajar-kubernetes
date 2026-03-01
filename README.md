@@ -314,7 +314,7 @@ kubectl describe pod nginx-pod
 
 * Akses Nginx dari Browser (Khusus Minikube):
 
-Karena Pod berjalan di dalam klaster isolasi, Anda perlu melakukan _port-forwarding_ agar bisa membukanya di browser Windows:
+Karena Pod berjalan di dalam klaster isolasi, Anda perlu melakukan _port-forwarding_ agar bisa membukanya di browser Windows dengan perintah `kubectl port-forward nginx-pod <portAkses>:<portPod>`:
 
 ```bash
 kubectl port-forward nginx-pod 8080:80
@@ -330,3 +330,117 @@ Jika terjadi kendala, cek log dengan:
 kubectl logs nginx-pod
 ```
 
+## 6️⃣ Label
+
+Label adalah pasangan kunci-nilai (_key-value pairs_) yang ditempelkan pada objek Kubernetes (seperti Pod, Service, atau Node) untuk mengidentifikasi dan mengelompokkan mereka secara logis. Label tidak memberikan fungsi langsung ke sistem, melainkan digunakan untuk organisasi.
+
+### Mengapa Label Sangat Penting?
+Tanpa label, Anda akan kesulitan mengelola ribuan Pod di dalam klaster. Label memungkinkan Anda untuk:
+
+* Pengelompokan: Membedakan mana Pod untuk environment: production dan mana yang environment: staging.
+* Versi: Menandai aplikasi dengan version: v1 atau version: v2.
+* Selector (Penghubung): Digunakan oleh **Service** atau __Deployment__ untuk menemukan Pod mana yang harus mereka kelola.
+
+### Contoh Penulisan Label (YAML)
+
+Dalam file YAML, label diletakkan di bawah bagian metadata:
+
+```yaml
+metadata:
+  name: nginx-pod
+  labels:
+    app: webserver
+    tier: frontend
+    env: production
+```
+
+### Cara Menggunakan Label dengan kubectl
+
+* Melihat Label Pod:
+
+```bash
+kubectl get pods --show-labels
+```
+* Filter Berdasarkan Label (Selector):
+
+Menampilkan hanya Pod yang memiliki label `env=production`:
+
+```bash
+kubectl get pods -l env=production
+```
+
+* Menambah Label secara Langsung:
+
+```bash
+kubectl label pods my-nginx-pod status=unstable
+```
+
+* Mengubah (Overwrite) Label yang Sudah Ada
+Secara default, Kubernetes akan mencegah Anda mengubah label yang sudah ada untuk menghindari kesalahan. Anda harus menambahkan flag `--overwrite`:
+
+```bash
+kubectl label pods <nama-pod> <kunci>=<nilai> --overwrite
+```
+
+Contoh: Mengubah label "env" dari "dev" menjadi "prod":
+`kubectl label pods my-nginx-pod env=prod --overwrite`
+
+* Menghapus Label
+Untuk menghapus label, gunakan kunci label diikuti dengan tanda minus (`-`):
+
+```bash
+kubectl label pods <nama-pod> <kunci>-
+```
+
+### Mencari Pod dengan Label
+
+* Mencari Berdasarkan Satu Label
+
+  Gunakan flag `-l` (singkatan dari `--selector`):
+
+```bash
+kubectl get pods -l app=webserver
+```
+
+* Mencari Berdasarkan Banyak Label (Logika AND)
+
+  Jika Anda ingin mencari Pod yang memenuhi beberapa kriteria sekaligus, pisahkan dengan koma:
+
+```bash
+kubectl get pods -l app=webserver,env=prod
+```
+
+* Mencari Berdasarkan "Keberadaan" Kunci
+  Menampilkan semua Pod yang memiliki label `env`, tidak peduli apa nilainya:
+
+```bash
+kubectl get pods -l env
+```
+
+* Menggunakan Operasi Set (In / NotIn)
+  - `In`: Mencari Pod dengan nilai label yang ada dalam daftar.
+
+```bash
+kubectl get pods -l "env in (staging, prod)"
+```
+  - `Not In`: Mencari Pod yang nilainya bukan dari daftar tersebut.
+
+```bash
+kubectl get pods -l "env notin (dev)"
+```
+
+* Mencari yang "TIDAK" Memiliki Label Tertentu
+
+  Gunakan tanda seru (`!`) untuk pengecualian:
+
+```bash
+kubectl get pods -l "!env"
+```
+
+* Tips: Melihat Semua Label Sambil Memfilter
+
+Agar Anda bisa memverifikasi hasilnya dengan mudah, tambahkan flag `--show-labels`:
+
+```bash
+kubectl get pods -l app=webserver --show-labels
+```
