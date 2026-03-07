@@ -354,6 +354,12 @@ metadata:
     env: production
 ```
 
+* Deploy Pod:
+
+```bash
+kubectl create -f <nama-file-yaml>
+```
+
 ### Cara Menggunakan Label dengan kubectl
 
 * Melihat Label Pod:
@@ -396,7 +402,7 @@ kubectl label pods <nama-pod> <kunci>-
 
 * Mencari Berdasarkan Satu Label
 
-  Gunakan flag `-l` (singkatan dari `--selector`):
+   Gunakan flag `-l` (singkatan dari `--selector`):
 
 ```bash
 kubectl get pods -l app=webserver
@@ -443,4 +449,58 @@ Agar Anda bisa memverifikasi hasilnya dengan mudah, tambahkan flag `--show-label
 
 ```bash
 kubectl get pods -l app=webserver --show-labels
+```
+
+## 7️⃣ Annotation
+
+Kubernetes Annotations sering kali membingungkan karena terlihat mirip dengan Labels. Namun, fungsinya sangat berbeda. Jika Labels digunakan untuk mengelompokkan objek, Annotations digunakan untuk memberikan instruksi atau metadata tambahan kepada sistem eksternal atau kontroler.
+
+Annotations adalah metadata non-identitas yang ditempelkan pada objek Kubernetes (seperti Pod, Deployment, atau Service). Metadata ini tidak digunakan oleh Kubernetes untuk memilih atau mengelompokkan objek, tetapi digunakan oleh tool pihak ketiga, perpustakaan, atau kontroler untuk mengubah perilaku aplikasi.
+
+> Gunakan Labels jika Anda ingin "memanggil" atau "mengelompokkan" objek. Gunakan Annotations jika Anda ingin "memberi instruksi" atau "catatan" tambahan bagi sistem lain yang mengelola objek tersebut.
+
+### Kapan Harus Menggunakan Annotations?
+
+Anda sebaiknya menggunakan Annotations dalam skenario berikut:
+
+* Konfigurasi Ingress: Memberi tahu Nginx Ingress Controller untuk mengaktifkan SSL atau membatasi ukuran upload.
+* Informasi Build/Release: Mencatat nomor build CI/CD, ID commit Git, atau tanggal rilis.
+* Informasi Kontak: Mencatat siapa penanggung jawab (email/nomor telepon) jika terjadi incident.
+*  Integrasi Tool Eksternal: Misalnya, memberi tahu Prometheus untuk melakukan scraping metrik pada port tertentu.
+* Sidecar Injection: Memberi tahu Service Mesh (seperti Istio) untuk memasukkan kontainer tambahan secara otomatis.
+
+### Struktur Penulisan (Syntax)
+
+Annotations ditulis dalam format key-value. Key biasanya menggunakan format DNS untuk menghindari konflik antar tool.
+
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: nginx-with-annotation
+  labels:
+    team: product
+    version: "1.0"
+    environment: development
+  annotations:
+    description: "Ini adalah aplikasi yang dibuat oleh Tim Product"
+    other: "Some text..."
+spec:
+  containers:
+    - name: nginx
+      image: nginx:latest
+      ports:
+        - containerPort: 80
+```
+
+* Deploy Pod:
+
+```bash
+kubectl create -f pod-with-annotation.yaml
+```
+
+* Melakukan pengecekan:
+
+```bash
+kubectl describe pod nginx-with-annotation
 ```
